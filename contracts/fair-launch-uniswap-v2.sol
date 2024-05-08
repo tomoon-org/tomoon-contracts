@@ -191,8 +191,14 @@ contract FairLaunchToken is ERC20, ReentrancyGuard {
             address(this), // lp to
             block.timestamp + 1 days // deadline
         );
-
+        _handleLP(_pair);
         emit LaunchEvent(address(this), _pair, tokenAmount, ethAmount, liquidity, platformFee);
+    }
+
+    function _handleLP(address lp) virtual internal {
+        // default: drop lp
+        IERC20 lpToken = IERC20(lp);
+        lpToken.safeTransfer(address(0), lpToken.balanceOf(address(this)));
     }
 
     function _update(
