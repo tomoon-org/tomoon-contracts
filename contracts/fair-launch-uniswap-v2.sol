@@ -53,6 +53,9 @@ contract FairLaunchToken is ERC20, ReentrancyGuard {
     uint256 public price;
     uint256 public amountPerUnits;
 
+    uint256 public amountReservedForMining;
+    uint256 public percentReservedForMining;    //base is 1000. for example 10, 10/1000=1%
+
     uint256 public mintLimit;
     uint256 public minted;
 
@@ -82,6 +85,7 @@ contract FairLaunchToken is ERC20, ReentrancyGuard {
         uint256 _eachAddressLimitEthers,
         uint256 _buyTotalFees,
         uint256 _sellTotalFees,
+        uint256 _percentReservedForMining,
         address _tokenFactory,
         address _uniswapRouter,
         address _uniswapFactory
@@ -90,8 +94,12 @@ contract FairLaunchToken is ERC20, ReentrancyGuard {
         amountPerUnits = _amountPerUnits;
         started = false;
         _mint(address(this), _totalSupply);
-        // 50% of total supply for mint
-        mintLimit = (_totalSupply) / 2;
+
+        percentReservedForMining = _percentReservedForMining;
+        amountReservedForMining = calcAmountReservedForMining(_totalSupply, amountPerUnits, percentReservedForMining);
+
+        //50% for fair mint
+        mintLimit = (_totalSupply - amountReservedForMining) / 2;
 
         eachAddressLimitEthers = _eachAddressLimitEthers;
         buyTotalFees = _buyTotalFees;
@@ -101,10 +109,11 @@ contract FairLaunchToken is ERC20, ReentrancyGuard {
         uniswapRouter = _uniswapRouter;
         uniswapFactory = _uniswapFactory;
         platformFeePercent = ITokenFactory(tokenFactory).platformFeePercent();
+        transferMiningReserveToTokenManager(amountReservedForMining);
     }
 
     receive() external payable {
-        if (msg.value == 0.0005 ether && !started) {
+        if (msg.value == 0.0001 ether && !started) {
             if (minted == mintLimit) {
                 start();
             } else {
@@ -149,11 +158,10 @@ contract FairLaunchToken is ERC20, ReentrancyGuard {
             "exceed max mint"
         );
 
-        _transfer(address(this), msg.sender, units * amountPerUnits);
         minted += units * amountPerUnits;
+        _transfer(address(this), msg.sender, units * amountPerUnits);
 
         emit FairMinted(msg.sender, units * amountPerUnits, realCost);
-
         if (refund > 0) {
             payable(msg.sender).transfer(refund);
         }
@@ -192,9 +200,10 @@ contract FairLaunchToken is ERC20, ReentrancyGuard {
             block.timestamp + 1 days // deadline
         );
         _handleLP(_pair);
+        ammPairs[_pair] = true;
         emit LaunchEvent(address(this), _pair, tokenAmount, ethAmount, liquidity, platformFee);
     }
-
+                                        
     function _handleLP(address lp) virtual internal {
         // default: drop lp
         IERC20 lpToken = IERC20(lp);
@@ -209,7 +218,7 @@ contract FairLaunchToken is ERC20, ReentrancyGuard {
         // if not started, only allow refund
         if (!started) {
             if (to == address(this) && from != address(0)) {
-                // refund deprecated
+                // refund
             } else {
                 // if it is not refund operation, check and revert.
                 if (from != address(0) && from != address(this)) {
@@ -297,6 +306,20 @@ contract FairLaunchToken is ERC20, ReentrancyGuard {
 
         address feeDao = getFeeDao();
         IWETH(_weth).transfer(feeDao, platformFee);
+    }
+
+    function calcAmountReservedForMining(uint256 _totalSupply, uint256 _amountPerUnits, uint256 _percentReservedForMining) internal pure returns (uint256) {
+        uint256 totalUnits = _totalSupply / _amountPerUnits;
+        uint256 percentUnits = totalUnits * _percentReservedForMining / 1000;
+        return percentUnits * _amountPerUnits;
+    }
+    
+    function transferMiningReserveToTokenManager(uint256 _amount) internal {
+        if (_amount == 0) {
+            return;
+        }
+        address feeDao = getFeeDao();
+        _transfer(address(this), feeDao, _amount);
     }
 
     //helper functions to make contract works well
