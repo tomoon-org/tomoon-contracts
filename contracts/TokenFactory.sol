@@ -48,7 +48,7 @@ contract TokenFactory is Governable {
         deployedSymbols[symbolEncoded] = true;
         uint256 id = _tokenDeployedCount++;
         _tokensDeployed[id] = new FairLaunchToken(_name, _symbol, _totalSupply, _pricePerUnit, _amountPerUnit, _eachAddressLimitEthers, 
-													_buyTotalFees, _sellTotalFees, _percentReservedForMining, address(this), uniswapRouter, uniswapFactory);
+                                                  _buyTotalFees, _sellTotalFees, _percentReservedForMining, address(this), uniswapRouter, uniswapFactory);
         address tokenAddress = address(_tokensDeployed[id]);
         //console.log("tokenAddress: ", tokenAddress);
 
