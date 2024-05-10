@@ -28,7 +28,7 @@ contract TokenFactory is Governable {
         uniswapFactory = _uniswapFactory;
   	}
 
-	function deployToken(
+    function deployToken(
         string memory _name,
         string memory _symbol,
         uint256 _totalSupply,
@@ -46,15 +46,15 @@ contract TokenFactory is Governable {
         require(_percentReservedForMining <= percentMaxReservedForMining, "token reserved for mining too large!");
 
         deployedSymbols[symbolEncoded] = true;
-    	uint256 id = _tokenDeployedCount++;
-    	_tokensDeployed[id] = new FairLaunchToken(_name, _symbol, _totalSupply, _pricePerUnit, _amountPerUnit, _eachAddressLimitEthers, 
+        uint256 id = _tokenDeployedCount++;
+        _tokensDeployed[id] = new FairLaunchToken(_name, _symbol, _totalSupply, _pricePerUnit, _amountPerUnit, _eachAddressLimitEthers, 
 													_buyTotalFees, _sellTotalFees, _percentReservedForMining, address(this), uniswapRouter, uniswapFactory);
-    	address tokenAddress = address(_tokensDeployed[id]);
+        address tokenAddress = address(_tokensDeployed[id]);
         //console.log("tokenAddress: ", tokenAddress);
 
-		emit TokenDeployed(id, tokenAddress, msg.sender, block.timestamp);
-		return tokenAddress;
-  	}
+        emit TokenDeployed(id, tokenAddress, msg.sender, block.timestamp);
+        return tokenAddress;
+    }
 
     function setTokenLauncher(address _launcher) external onlyGov {
         require(_launcher != address(0x0), "invalid");
@@ -92,7 +92,7 @@ contract TokenFactory is Governable {
         percentMaxReservedForMining = _percentMaxReservedForMining;
     }
 
-	function tokenDeployedCount() external view returns (uint256) {
-    	return _tokenDeployedCount;
-  	}
+    function tokenDeployedCount() external view returns (uint256) {
+        return _tokenDeployedCount;
+    }
 }
